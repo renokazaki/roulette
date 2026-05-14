@@ -5,10 +5,9 @@ import { motion } from 'framer-motion'
 import { HomeScene } from '@/three/scenes/HomeScene'
 
 const MODES = [
-  { path: '/play',     icon: '▶',  label: 'ライブプレイ', desc: '3Dルーレットで実際に戦略を試す',        color: '#d4aa3a' },
-  { path: '/lab',      icon: '📊', label: 'MC ラボ',      desc: '1000試行で6戦略を並列シミュレーション', color: '#60a5fa' },
-  { path: '/patterns', icon: '🔀', label: 'パターン解析', desc: 'W/Lパターン別最適戦略を分析',           color: '#c084fc' },
-  { path: '/guide',    icon: '📖', label: '戦略ガイド',   desc: '6戦略の詳細解説とプレイブック',         color: '#2dd4bf' },
+  { path: '/play',     icon: '▶',  label: 'ライブプレイ', desc: '3Dルーレットで実際に戦略を試す',          color: '#d4aa3a' },
+  { path: '/patterns', icon: '🔀', label: 'パターン解析', desc: 'W/Lパターン別最適戦略を分析',             color: '#c084fc' },
+  { path: '/guide',    icon: '📖', label: '戦略ガイド',   desc: '10戦略の詳細解説とプレイブック',           color: '#2dd4bf' },
 ]
 
 export function Home() {

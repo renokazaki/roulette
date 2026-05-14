@@ -202,46 +202,52 @@ function GameSettings() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="px-2.5 py-1.5 rounded border border-casino-border/60 text-[11px] text-casino-border font-mono active:scale-95 transition-transform bg-casino-bg/80 backdrop-blur-sm"
+        className="px-2.5 py-1.5 rounded text-[11px] font-mono active:scale-95 transition-transform"
+        style={{
+          background: 'rgba(212,170,58,0.15)',
+          border: '1px solid rgba(212,170,58,0.5)',
+          color: '#d4aa3a',
+        }}
       >
         ⚙ 設定
       </button>
 
       <AnimatePresence>
         {open && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] bg-black/80"
-            style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
-            onClick={() => setOpen(false)}
-          >
+          <>
+            {/* Backdrop — separate from panel to avoid flex/animation conflicts */}
             <motion.div
+              key="backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[200] bg-black/80"
+              onClick={() => setOpen(false)}
+            />
+
+            {/* Panel — fixed to bottom, slides up independently */}
+            <motion.div
+              key="panel"
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
-              transition={{ type: 'spring', stiffness: 400, damping: 40 }}
-              onClick={e => e.stopPropagation()}
-              className="w-full max-w-lg bg-casino-surface border-t border-casino-border rounded-t-2xl"
-              style={{ maxHeight: '88svh', display: 'flex', flexDirection: 'column' }}
+              transition={{ type: 'spring', stiffness: 380, damping: 38 }}
+              className="fixed bottom-0 left-0 right-0 z-[201] bg-casino-surface border-t border-casino-border rounded-t-2xl"
+              style={{ maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}
             >
-              {/* Fixed header */}
+              {/* Drag handle + title */}
               <div className="shrink-0 px-6 pt-4 pb-3">
                 <div className="w-8 h-1 bg-casino-border rounded-full mx-auto mb-3" />
-                <h3 className="text-casino-gold font-display text-lg">ゲーム設定</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-casino-gold font-display text-lg">ゲーム設定</h3>
+                  <button onClick={() => setOpen(false)} className="text-casino-border text-xl leading-none px-1">×</button>
+                </div>
               </div>
 
-              {/* Scrollable fields — overscroll-contain stops iOS from passing scroll to body */}
+              {/* Scrollable fields */}
               <div
-                className="px-6 space-y-4 pb-3"
-                style={{
-                  overflowY: 'auto',
-                  overscrollBehavior: 'contain',
-                  WebkitOverflowScrolling: 'touch' as never,
-                  flex: '1 1 0',
-                  minHeight: 0,
-                }}
+                className="px-6 space-y-4 pb-4"
+                style={{ overflowY: 'auto', overscrollBehavior: 'contain', flex: '1 1 0', minHeight: 0 }}
               >
                 <div>
                   <label className="text-[10px] font-mono text-casino-border uppercase tracking-wider">初期資金 (¥)</label>
@@ -273,28 +279,27 @@ function GameSettings() {
                     初期資金の{bbNum > 0 && bkNum > 0 ? ((bbNum / bkNum) * 100).toFixed(1) : '--'}%
                   </p>
                 </div>
-                {/* bottom padding inside scroll area */}
-                <div className="h-2" />
               </div>
 
-              {/* Sticky footer — always visible */}
-              <div className="shrink-0 px-6 pt-3 pb-6 border-t border-casino-border/40 bg-casino-surface">
+              {/* Sticky footer */}
+              <div className="shrink-0 px-6 pt-3 pb-8 border-t border-casino-border/40">
+                {!canEdit && (
+                  <p className="text-center text-xs text-red-400 mb-2 font-mono">ゲーム終了後に変更できます</p>
+                )}
                 <div className="flex gap-3">
                   <button onClick={() => setOpen(false)}
                     className="flex-1 py-3 rounded-lg border border-casino-border text-casino-border font-ui font-medium text-sm active:scale-95 transition-transform">
                     キャンセル
                   </button>
                   <button onClick={apply} disabled={!canEdit}
-                    className="flex-1 py-3 rounded-lg bg-casino-gold text-black font-display font-bold tracking-wider text-sm disabled:opacity-50 active:scale-95 transition-transform">
+                    className="flex-1 py-3 rounded-lg font-display font-bold tracking-wider text-sm disabled:opacity-40 active:scale-95 transition-transform"
+                    style={{ background: 'linear-gradient(135deg, #c49028, #e8c96b)', color: '#000' }}>
                     適用 &amp; リセット
                   </button>
                 </div>
-                {!canEdit && (
-                  <p className="text-center text-xs text-red-400 mt-2 font-mono">ゲーム終了後に変更できます</p>
-                )}
               </div>
             </motion.div>
-          </motion.div>
+          </>
         )}
       </AnimatePresence>
     </>
@@ -621,7 +626,12 @@ export function LivePlay() {
         <div className="absolute top-2 left-3 z-10">
           <button
             onClick={actions.reset}
-            className="px-2.5 py-1.5 rounded border border-casino-border/60 text-[11px] text-casino-border font-mono active:scale-95 transition-transform bg-casino-bg/80 backdrop-blur-sm"
+            className="px-2.5 py-1.5 rounded text-[11px] font-mono active:scale-95 transition-transform"
+            style={{
+              background: 'rgba(239,68,68,0.18)',
+              border: '1px solid rgba(239,68,68,0.5)',
+              color: '#f87171',
+            }}
           >
             ↺ リセット
           </button>
