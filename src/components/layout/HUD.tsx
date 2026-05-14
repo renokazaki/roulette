@@ -3,7 +3,7 @@ import { formatYen, formatPnl } from '@/lib/utils/format'
 import { clsx } from 'clsx'
 
 export function HUD() {
-  const bankroll = useGameStore(s => s.bankroll)
+  const bankroll = useGameStore(s => s.displayBankroll)  // Shows pre-spin value during animation
   const initialBankroll = useGameStore(s => s.initialBankroll)
   const spinCount = useGameStore(s => s.spinCount)
   const maxSpins = useGameStore(s => s.maxSpins)

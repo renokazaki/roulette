@@ -12,7 +12,8 @@ interface GameSettings {
 }
 
 interface GameState {
-  bankroll: number
+  bankroll: number        // True value — updates immediately on spin
+  displayBankroll: number // Shown in HUD — updates only after animation ends
   initialBankroll: number
   spinCount: number
   maxSpins: number
@@ -52,6 +53,7 @@ const DEFAULT_SETTINGS: GameSettings = {
 
 export const useGameStore = create<GameState>((set, get) => ({
   bankroll: DEFAULT_SETTINGS.initialBankroll,
+  displayBankroll: DEFAULT_SETTINGS.initialBankroll,
   initialBankroll: DEFAULT_SETTINGS.initialBankroll,
   spinCount: 0,
   maxSpins: DEFAULT_SETTINGS.maxSpins,
@@ -122,6 +124,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
       set({
         bankroll: newBankroll,
+        displayBankroll: state.bankroll, // Keep pre-spin value; revealed when setPhase('result') is called
         spinCount: newSpinCount,
         phase,
         strategyState: newStrategyState,
@@ -159,6 +162,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       const state = get()
       set({
         bankroll: state.initialBankroll,
+        displayBankroll: state.initialBankroll,
         spinCount: 0,
         phase: 'waiting',
         selectedBet: 'red',
@@ -173,7 +177,10 @@ export const useGameStore = create<GameState>((set, get) => ({
     },
 
     setPhase(phase) {
-      set({ phase })
+      const state = get()
+      // Reveal the true bankroll when the result becomes visible
+      const revealing = phase === 'result' || phase === 'gameOver' || phase === 'goalReached'
+      set({ phase, ...(revealing ? { displayBankroll: state.bankroll } : {}) })
     },
 
     setBaseBet(amount) {

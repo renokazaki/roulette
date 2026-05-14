@@ -214,92 +214,85 @@ function GameSettings() {
 
       <AnimatePresence>
         {open && (
-          <>
-            {/* Backdrop — separate from panel to avoid flex/animation conflicts */}
-            <motion.div
-              key="backdrop"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[200] bg-black/80"
-              onClick={() => setOpen(false)}
-            />
+          <motion.div
+            key="settings-fs"
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', stiffness: 320, damping: 36 }}
+            className="fixed inset-0 z-[200] flex flex-col"
+            style={{ background: '#131318' }}
+          >
+            {/* Header */}
+            <div className="safe-top shrink-0 px-5 pt-4 pb-3 border-b border-casino-border/50"
+              style={{ background: 'linear-gradient(180deg,#1a0c0e,#131318)' }}>
+              <div className="gold-divider mb-3" />
+              <div className="flex items-center justify-between">
+                <h2 className="text-casino-gold font-display text-xl font-bold tracking-wide">ゲーム設定</h2>
+                <button onClick={() => setOpen(false)}
+                  className="w-8 h-8 rounded-full border border-casino-border/60 text-casino-border text-lg flex items-center justify-center active:scale-90 transition-transform">
+                  ×
+                </button>
+              </div>
+            </div>
 
-            {/* Panel — fixed to bottom, slides up independently */}
-            <motion.div
-              key="panel"
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', stiffness: 380, damping: 38 }}
-              className="fixed bottom-0 left-0 right-0 z-[201] bg-casino-surface border-t border-casino-border rounded-t-2xl"
-              style={{ maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}
-            >
-              {/* Drag handle + title */}
-              <div className="shrink-0 px-6 pt-4 pb-3">
-                <div className="w-8 h-1 bg-casino-border rounded-full mx-auto mb-3" />
-                <div className="flex items-center justify-between">
-                  <h3 className="text-casino-gold font-display text-lg">ゲーム設定</h3>
-                  <button onClick={() => setOpen(false)} className="text-casino-border text-xl leading-none px-1">×</button>
+            {/* Scrollable fields — full remaining height */}
+            <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5">
+              {[
+                { label: '初期資金 (¥)', val: bk, set: setBk, min: 1000, step: 1000, hint: '' },
+                { label: '最大スピン数', val: sp, set: setSp, min: 5,    step: 5,    hint: '' },
+              ].map(({ label, val, set: s, min, step }) => (
+                <div key={label}>
+                  <label className="block text-[10px] font-mono text-casino-border uppercase tracking-wider mb-1">{label}</label>
+                  <input type="number" inputMode="numeric" value={val} onChange={e => s(e.target.value)}
+                    className="w-full bg-casino-bg border border-casino-border rounded-lg px-4 py-3 text-white font-mono text-base focus:border-casino-gold outline-none"
+                    min={min} step={step} />
                 </div>
+              ))}
+
+              <div>
+                <label className="block text-[10px] font-mono text-casino-border uppercase tracking-wider mb-1">目標資金 (¥)</label>
+                <input type="number" inputMode="numeric" value={tg} onChange={e => setTg(e.target.value)}
+                  className="w-full bg-casino-bg border border-casino-border rounded-lg px-4 py-3 text-white font-mono text-base focus:border-casino-gold outline-none"
+                  min={bkNum + 1000} step={1000} />
+                <p className="text-[10px] text-casino-border mt-1.5 font-mono">
+                  目標倍率: ×{tgNum > 0 && bkNum > 0 ? (tgNum / bkNum).toFixed(1) : '--'}
+                </p>
               </div>
 
-              {/* Scrollable fields */}
-              <div
-                className="px-6 space-y-4 pb-4"
-                style={{ overflowY: 'auto', overscrollBehavior: 'contain', flex: '1 1 0', minHeight: 0 }}
-              >
-                <div>
-                  <label className="text-[10px] font-mono text-casino-border uppercase tracking-wider">初期資金 (¥)</label>
-                  <input type="number" inputMode="numeric" value={bk} onChange={e => setBk(e.target.value)}
-                    className="w-full mt-1 bg-casino-bg border border-casino-border rounded px-3 py-2.5 text-white font-mono text-sm focus:border-casino-gold outline-none"
-                    min={1000} step={1000} />
-                </div>
-                <div>
-                  <label className="text-[10px] font-mono text-casino-border uppercase tracking-wider">最大スピン数</label>
-                  <input type="number" inputMode="numeric" value={sp} onChange={e => setSp(e.target.value)}
-                    className="w-full mt-1 bg-casino-bg border border-casino-border rounded px-3 py-2.5 text-white font-mono text-sm focus:border-casino-gold outline-none"
-                    min={5} max={200} step={5} />
-                </div>
-                <div>
-                  <label className="text-[10px] font-mono text-casino-border uppercase tracking-wider">目標資金 (¥)</label>
-                  <input type="number" inputMode="numeric" value={tg} onChange={e => setTg(e.target.value)}
-                    className="w-full mt-1 bg-casino-bg border border-casino-border rounded px-3 py-2.5 text-white font-mono text-sm focus:border-casino-gold outline-none"
-                    min={bkNum + 1000} step={1000} />
-                  <p className="text-[10px] text-casino-border mt-1 font-mono">
-                    目標倍率: ×{tgNum > 0 && bkNum > 0 ? (tgNum / bkNum).toFixed(1) : '--'}
-                  </p>
-                </div>
-                <div>
-                  <label className="text-[10px] font-mono text-casino-border uppercase tracking-wider">基本ベット額 (¥) — 戦略の1単位</label>
-                  <input type="number" inputMode="numeric" value={bb} onChange={e => setBb(e.target.value)}
-                    className="w-full mt-1 bg-casino-bg border border-casino-border rounded px-3 py-2.5 text-white font-mono text-sm focus:border-casino-gold outline-none"
-                    min={100} step={100} />
-                  <p className="text-[10px] text-casino-border mt-1 font-mono">
-                    初期資金の{bbNum > 0 && bkNum > 0 ? ((bbNum / bkNum) * 100).toFixed(1) : '--'}%
-                  </p>
-                </div>
+              <div>
+                <label className="block text-[10px] font-mono text-casino-border uppercase tracking-wider mb-1">基本ベット額 (¥) — 戦略の1単位</label>
+                <input type="number" inputMode="numeric" value={bb} onChange={e => setBb(e.target.value)}
+                  className="w-full bg-casino-bg border border-casino-border rounded-lg px-4 py-3 text-white font-mono text-base focus:border-casino-gold outline-none"
+                  min={100} step={100} />
+                <p className="text-[10px] text-casino-border mt-1.5 font-mono">
+                  初期資金の{bbNum > 0 && bkNum > 0 ? ((bbNum / bkNum) * 100).toFixed(1) : '--'}%
+                </p>
               </div>
 
-              {/* Sticky footer */}
-              <div className="shrink-0 px-6 pt-3 pb-8 border-t border-casino-border/40">
-                {!canEdit && (
-                  <p className="text-center text-xs text-red-400 mb-2 font-mono">ゲーム終了後に変更できます</p>
-                )}
-                <div className="flex gap-3">
-                  <button onClick={() => setOpen(false)}
-                    className="flex-1 py-3 rounded-lg border border-casino-border text-casino-border font-ui font-medium text-sm active:scale-95 transition-transform">
-                    キャンセル
-                  </button>
-                  <button onClick={apply} disabled={!canEdit}
-                    className="flex-1 py-3 rounded-lg font-display font-bold tracking-wider text-sm disabled:opacity-40 active:scale-95 transition-transform"
-                    style={{ background: 'linear-gradient(135deg, #c49028, #e8c96b)', color: '#000' }}>
-                    適用 &amp; リセット
-                  </button>
-                </div>
+              {/* spacer so footer doesn't overlap last field */}
+              <div className="h-4" />
+            </div>
+
+            {/* Footer — always visible at bottom */}
+            <div className="shrink-0 safe-bottom px-5 pt-3 pb-5 border-t border-casino-border/50"
+              style={{ background: '#131318' }}>
+              {!canEdit && (
+                <p className="text-center text-xs text-red-400 mb-2 font-mono">ゲーム終了後に変更できます</p>
+              )}
+              <div className="flex gap-3">
+                <button onClick={() => setOpen(false)}
+                  className="flex-1 py-3.5 rounded-xl border border-casino-border text-casino-border font-ui font-medium active:scale-95 transition-transform">
+                  キャンセル
+                </button>
+                <button onClick={apply} disabled={!canEdit}
+                  className="flex-1 py-3.5 rounded-xl font-display font-bold tracking-wider disabled:opacity-40 active:scale-95 transition-transform"
+                  style={{ background: 'linear-gradient(135deg,#c49028,#e8c96b)', color: '#000' }}>
+                  適用 &amp; リセット
+                </button>
               </div>
-            </motion.div>
-          </>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
     </>
