@@ -34,23 +34,47 @@ function GameSettings() {
   const [tg, setTg] = useState(String(targetAmount))
   const [bb, setBb] = useState(String(baseBet))
 
-  // sync when store changes externally
+  // Lock body scroll when modal is open (prevents iOS background scroll)
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = 'hidden'
+      document.body.style.position = 'fixed'
+      document.body.style.width = '100%'
+    } else {
+      document.body.style.overflow = ''
+      document.body.style.position = ''
+      document.body.style.width = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+      document.body.style.position = ''
+      document.body.style.width = ''
+    }
+  }, [open])
+
+  // Sync when store changes externally
   useEffect(() => { setBk(String(initialBankroll)) }, [initialBankroll])
   useEffect(() => { setSp(String(maxSpins)) },        [maxSpins])
   useEffect(() => { setTg(String(targetAmount)) },    [targetAmount])
   useEffect(() => { setBb(String(baseBet)) },         [baseBet])
 
   function apply() {
-    const nb = parseInt(bk), ns = parseInt(sp), nt = parseInt(tg), nbb = parseInt(bb)
-    if (!isNaN(nb)  && nb  >= 1000)       updateSettings({ initialBankroll: nb })
-    if (!isNaN(ns)  && ns  >= 5 && ns <= 200) updateSettings({ maxSpins: ns })
-    if (!isNaN(nt)  && nt  > nb)          updateSettings({ targetAmount: nt })
-    if (!isNaN(nbb) && nbb >= 100)        updateSettings({ baseBet: nbb })
+    const nb  = parseInt(bk)
+    const ns  = parseInt(sp)
+    const nt  = parseInt(tg)
+    const nbb = parseInt(bb)
+    if (!isNaN(nb)  && nb  >= 1000)             updateSettings({ initialBankroll: nb })
+    if (!isNaN(ns)  && ns  >= 5 && ns <= 200)   updateSettings({ maxSpins: ns })
+    if (!isNaN(nt)  && nt  > (isNaN(nb) ? 0 : nb)) updateSettings({ targetAmount: nt })
+    if (!isNaN(nbb) && nbb >= 100)              updateSettings({ baseBet: nbb })
     reset()
     setOpen(false)
   }
 
   const canEdit = phase === 'waiting' || phase === 'gameOver' || phase === 'goalReached'
+  const bkNum = parseInt(bk)
+  const tgNum = parseInt(tg)
+  const bbNum = parseInt(bb)
 
   return (
     <>
@@ -67,7 +91,8 @@ function GameSettings() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-end justify-center bg-black/70"
+            className="fixed inset-0 z-50 bg-black/70"
+            style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
             onClick={() => setOpen(false)}
           >
             <motion.div
@@ -76,8 +101,8 @@ function GameSettings() {
               exit={{ y: '100%' }}
               transition={{ type: 'spring', stiffness: 400, damping: 40 }}
               onClick={e => e.stopPropagation()}
-              className="w-full max-w-lg bg-casino-surface border-t border-casino-border rounded-t-2xl flex flex-col"
-              style={{ maxHeight: '88vh' }}
+              className="w-full max-w-lg bg-casino-surface border-t border-casino-border rounded-t-2xl"
+              style={{ maxHeight: '88svh', display: 'flex', flexDirection: 'column' }}
             >
               {/* Fixed header */}
               <div className="shrink-0 px-6 pt-4 pb-3">
@@ -85,49 +110,60 @@ function GameSettings() {
                 <h3 className="text-casino-gold font-display text-lg">ゲーム設定</h3>
               </div>
 
-              {/* Scrollable fields */}
-              <div className="flex-1 overflow-y-auto px-6 space-y-4 pb-2">
+              {/* Scrollable fields — overscroll-contain stops iOS from passing scroll to body */}
+              <div
+                className="px-6 space-y-4 pb-3"
+                style={{
+                  overflowY: 'auto',
+                  overscrollBehavior: 'contain',
+                  WebkitOverflowScrolling: 'touch' as never,
+                  flex: '1 1 0',
+                  minHeight: 0,
+                }}
+              >
                 <div>
                   <label className="text-[10px] font-mono text-casino-border uppercase tracking-wider">初期資金 (¥)</label>
-                  <input type="number" value={bk} onChange={e => setBk(e.target.value)}
+                  <input type="number" inputMode="numeric" value={bk} onChange={e => setBk(e.target.value)}
                     className="w-full mt-1 bg-casino-bg border border-casino-border rounded px-3 py-2.5 text-white font-mono text-sm focus:border-casino-gold outline-none"
                     min={1000} step={1000} />
                 </div>
                 <div>
                   <label className="text-[10px] font-mono text-casino-border uppercase tracking-wider">最大スピン数</label>
-                  <input type="number" value={sp} onChange={e => setSp(e.target.value)}
+                  <input type="number" inputMode="numeric" value={sp} onChange={e => setSp(e.target.value)}
                     className="w-full mt-1 bg-casino-bg border border-casino-border rounded px-3 py-2.5 text-white font-mono text-sm focus:border-casino-gold outline-none"
                     min={5} max={200} step={5} />
                 </div>
                 <div>
                   <label className="text-[10px] font-mono text-casino-border uppercase tracking-wider">目標資金 (¥)</label>
-                  <input type="number" value={tg} onChange={e => setTg(e.target.value)}
+                  <input type="number" inputMode="numeric" value={tg} onChange={e => setTg(e.target.value)}
                     className="w-full mt-1 bg-casino-bg border border-casino-border rounded px-3 py-2.5 text-white font-mono text-sm focus:border-casino-gold outline-none"
-                    min={parseInt(bk) + 1000} step={1000} />
+                    min={bkNum + 1000} step={1000} />
                   <p className="text-[10px] text-casino-border mt-1 font-mono">
-                    目標倍率: ×{parseInt(tg) > 0 && parseInt(bk) > 0 ? (parseInt(tg)/parseInt(bk)).toFixed(1) : '--'}
+                    目標倍率: ×{tgNum > 0 && bkNum > 0 ? (tgNum / bkNum).toFixed(1) : '--'}
                   </p>
                 </div>
                 <div>
                   <label className="text-[10px] font-mono text-casino-border uppercase tracking-wider">基本ベット額 (¥) — 戦略の1単位</label>
-                  <input type="number" value={bb} onChange={e => setBb(e.target.value)}
+                  <input type="number" inputMode="numeric" value={bb} onChange={e => setBb(e.target.value)}
                     className="w-full mt-1 bg-casino-bg border border-casino-border rounded px-3 py-2.5 text-white font-mono text-sm focus:border-casino-gold outline-none"
                     min={100} step={100} />
                   <p className="text-[10px] text-casino-border mt-1 font-mono">
-                    初期資金の{parseInt(bb) > 0 && parseInt(bk) > 0 ? ((parseInt(bb)/parseInt(bk))*100).toFixed(1) : '--'}%
+                    初期資金の{bbNum > 0 && bkNum > 0 ? ((bbNum / bkNum) * 100).toFixed(1) : '--'}%
                   </p>
                 </div>
+                {/* bottom padding inside scroll area */}
+                <div className="h-2" />
               </div>
 
               {/* Sticky footer — always visible */}
-              <div className="shrink-0 px-6 pt-3 pb-4 safe-bottom border-t border-casino-border/40 bg-casino-surface">
+              <div className="shrink-0 px-6 pt-3 pb-6 border-t border-casino-border/40 bg-casino-surface">
                 <div className="flex gap-3">
                   <button onClick={() => setOpen(false)}
-                    className="flex-1 py-3 rounded-lg border border-casino-border text-casino-border font-ui font-medium text-sm">
+                    className="flex-1 py-3 rounded-lg border border-casino-border text-casino-border font-ui font-medium text-sm active:scale-95 transition-transform">
                     キャンセル
                   </button>
                   <button onClick={apply} disabled={!canEdit}
-                    className="flex-1 py-3 rounded-lg bg-casino-gold text-black font-display font-bold tracking-wider text-sm disabled:opacity-50">
+                    className="flex-1 py-3 rounded-lg bg-casino-gold text-black font-display font-bold tracking-wider text-sm disabled:opacity-50 active:scale-95 transition-transform">
                     適用 &amp; リセット
                   </button>
                 </div>
@@ -146,41 +182,59 @@ function GameSettings() {
 // ─────────────────────────────────────────────
 // Bet amount quick adjuster
 // ─────────────────────────────────────────────
+const BET_PRESETS = [100, 500, 1000, 5000]
+
 function BaseBetAdjuster() {
   const baseBet    = useGameStore(s => s.baseBet)
   const bankroll   = useGameStore(s => s.bankroll)
   const setBaseBet = useGameStore(s => s.actions.setBaseBet)
   const phase      = useGameStore(s => s.phase)
   const disabled   = phase === 'spinning'
-
-  const steps = [100, 200, 500, 1000, 2000, 5000]
-  function decrease() {
-    const idx = steps.findLastIndex(s => s < baseBet)
-    if (idx >= 0) setBaseBet(steps[idx])
-    else setBaseBet(Math.max(100, baseBet - 100))
-  }
-  function increase() {
-    const idx = steps.findIndex(s => s > baseBet)
-    const next = idx >= 0 ? steps[idx] : baseBet + 500
-    setBaseBet(Math.min(next, Math.floor(bankroll * 0.3)))
-  }
+  const maxBet     = Math.floor(bankroll * 0.3)
 
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-[10px] font-mono text-casino-border uppercase tracking-wider whitespace-nowrap">
-        基本ベット
-      </span>
-      <button onClick={decrease} disabled={disabled || baseBet <= 100}
-        className="w-8 h-8 rounded-lg border border-casino-border text-white font-mono text-lg flex items-center justify-center active:scale-90 transition-transform disabled:opacity-30">
-        −
-      </button>
-      <div className="flex-1 text-center font-mono font-bold text-casino-gold text-base">
-        {formatYen(baseBet)}
+    <div className="space-y-2">
+      {/* ± 100 buttons */}
+      <div className="flex items-center gap-2">
+        <span className="text-[10px] font-mono text-casino-border uppercase tracking-wider whitespace-nowrap">
+          基本ベット
+        </span>
+        <button
+          onClick={() => setBaseBet(baseBet - 100)}
+          disabled={disabled || baseBet <= 100}
+          className="w-9 h-9 rounded-lg border border-casino-border text-white font-mono text-xl flex items-center justify-center active:scale-90 transition-transform disabled:opacity-30"
+        >
+          −
+        </button>
+        <div className="flex-1 text-center font-mono font-bold text-casino-gold text-base">
+          {formatYen(baseBet)}
+        </div>
+        <button
+          onClick={() => setBaseBet(baseBet + 100)}
+          disabled={disabled || baseBet >= maxBet}
+          className="w-9 h-9 rounded-lg border border-casino-border text-white font-mono text-xl flex items-center justify-center active:scale-90 transition-transform disabled:opacity-30"
+        >
+          ＋
+        </button>
       </div>
-      <button onClick={increase} disabled={disabled || baseBet >= bankroll * 0.3}
-        className="w-8 h-8 rounded-lg border border-casino-border text-white font-mono text-lg flex items-center justify-center active:scale-90 transition-transform disabled:opacity-30">
-        ＋
-      </button>
+      {/* Quick preset chips */}
+      <div className="flex gap-1.5">
+        {BET_PRESETS.map(p => (
+          <button
+            key={p}
+            onClick={() => setBaseBet(p)}
+            disabled={disabled || p > maxBet}
+            className={clsx(
+              'flex-1 py-1 rounded text-[10px] font-mono transition-all disabled:opacity-30',
+              baseBet === p
+                ? 'bg-casino-gold/20 border border-casino-gold/60 text-casino-gold'
+                : 'border border-casino-border/60 text-casino-border'
+            )}
+          >
+            {p >= 1000 ? `${p / 1000}K` : p}
+          </button>
+        ))}
+      </div>
     </div>
   )
 }
@@ -435,6 +489,16 @@ export function LivePlay() {
             <LiveScene />
           </Suspense>
         </Canvas>
+
+        {/* Reset button */}
+        <div className="absolute top-2 left-3 z-10">
+          <button
+            onClick={actions.reset}
+            className="px-2.5 py-1.5 rounded border border-casino-border/60 text-[11px] text-casino-border font-mono active:scale-95 transition-transform bg-casino-bg/80 backdrop-blur-sm"
+          >
+            ↺ リセット
+          </button>
+        </div>
 
         {/* Settings button */}
         <div className="absolute top-2 right-3 z-10">
