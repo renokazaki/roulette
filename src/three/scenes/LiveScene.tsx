@@ -19,7 +19,7 @@ export function LiveScene() {
 
   useFrame((_s, delta) => {
     if (isSpinning) {
-      spinProgressRef.current = Math.min(1, spinProgressRef.current + delta * 0.35)
+      spinProgressRef.current = Math.min(1, spinProgressRef.current + delta * 0.3)
     } else {
       spinProgressRef.current = 0
     }
@@ -29,15 +29,16 @@ export function LiveScene() {
     <>
       <CasinoEnvironment />
 
-      <group position={[0, -1.5, 0]}>
-        {/* Felt table */}
-        <mesh receiveShadow position={[0, -0.15, 0]}>
-          <cylinderGeometry args={[5.5, 5.5, 0.12, 64]} />
+      {/* Wheel group — raised so it sits in the center of the mobile viewport */}
+      <group position={[0, -0.8, 0]}>
+        {/* Felt table base */}
+        <mesh receiveShadow position={[0, -0.2, 0]}>
+          <cylinderGeometry args={[4.8, 4.8, 0.12, 64]} />
           <meshStandardMaterial color="#1a3a1a" roughness={0.95} />
         </mesh>
-        {/* Table edge */}
-        <mesh position={[0, -0.08, 0]}>
-          <torusGeometry args={[5.5, 0.22, 8, 64]} />
+        {/* Table rim */}
+        <mesh position={[0, -0.12, 0]}>
+          <torusGeometry args={[4.8, 0.2, 8, 64]} />
           <meshStandardMaterial color="#5a3a1a" roughness={0.6} metalness={0.2} />
         </mesh>
 
@@ -60,10 +61,11 @@ export function LiveScene() {
 
       <OrbitControls
         enablePan={false}
-        minDistance={5}
-        maxDistance={18}
-        minPolarAngle={Math.PI / 6}
-        maxPolarAngle={Math.PI / 2.2}
+        minDistance={4}
+        maxDistance={14}
+        minPolarAngle={Math.PI / 8}
+        maxPolarAngle={Math.PI / 2.1}
+        target={[0, 0, 0]}
       />
     </>
   )

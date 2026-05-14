@@ -44,7 +44,7 @@ function GameSettings() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="px-3 py-1.5 rounded border border-casino-border text-xs text-casino-border font-mono active:scale-95 transition-transform"
+        className="px-2.5 py-1.5 rounded border border-casino-border/60 text-[11px] text-casino-border font-mono active:scale-95 transition-transform bg-casino-bg/80 backdrop-blur-sm"
       >
         ⚙ 設定
       </button>
@@ -55,7 +55,7 @@ function GameSettings() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-end justify-center bg-black/60"
+            className="fixed inset-0 z-50 flex items-end justify-center bg-black/70"
             onClick={() => setOpen(false)}
           >
             <motion.div
@@ -76,7 +76,7 @@ function GameSettings() {
                     type="number"
                     value={bk}
                     onChange={e => setBk(e.target.value)}
-                    className="w-full mt-1 bg-casino-bg border border-casino-border rounded px-3 py-2 text-white font-mono text-sm focus:border-casino-gold outline-none"
+                    className="w-full mt-1 bg-casino-bg border border-casino-border rounded px-3 py-2.5 text-white font-mono text-sm focus:border-casino-gold outline-none"
                     min={1000} step={1000}
                   />
                 </div>
@@ -86,7 +86,7 @@ function GameSettings() {
                     type="number"
                     value={sp}
                     onChange={e => setSp(e.target.value)}
-                    className="w-full mt-1 bg-casino-bg border border-casino-border rounded px-3 py-2 text-white font-mono text-sm focus:border-casino-gold outline-none"
+                    className="w-full mt-1 bg-casino-bg border border-casino-border rounded px-3 py-2.5 text-white font-mono text-sm focus:border-casino-gold outline-none"
                     min={5} max={200} step={5}
                   />
                 </div>
@@ -96,7 +96,7 @@ function GameSettings() {
                     type="number"
                     value={tg}
                     onChange={e => setTg(e.target.value)}
-                    className="w-full mt-1 bg-casino-bg border border-casino-border rounded px-3 py-2 text-white font-mono text-sm focus:border-casino-gold outline-none"
+                    className="w-full mt-1 bg-casino-bg border border-casino-border rounded px-3 py-2.5 text-white font-mono text-sm focus:border-casino-gold outline-none"
                     min={parseInt(bk) + 1000} step={1000}
                   />
                   <div className="text-[10px] text-casino-border mt-1 font-mono">
@@ -151,8 +151,8 @@ export function LivePlay() {
   useEffect(() => {
     if (phase === 'spinning') {
       const t = setTimeout(() => {
-        if (phase === 'spinning') actions.setPhase('result')
-      }, 3500)
+        actions.setPhase('result')
+      }, 3200)
       return () => clearTimeout(t)
     }
   }, [phase, actions])
@@ -165,96 +165,92 @@ export function LivePlay() {
   const isGameOver = phase === 'gameOver' || phase === 'goalReached'
 
   return (
-    <div className="relative min-h-svh bg-casino-bg flex flex-col">
-      {/* 3D Canvas */}
-      <div className="canvas-layer">
+    <div className="flex flex-col min-h-svh bg-casino-bg">
+
+      {/* ── HUD ── */}
+      <HUD />
+
+      {/* ── 3D Canvas (block, not fixed) ── */}
+      <div className="relative bg-casino-bg" style={{ height: '44vh', minHeight: 260, maxHeight: 380 }}>
         <Canvas
-          camera={{ position: [0, 7, 12], fov: 50 }}
+          camera={{ position: [0, 5, 10], fov: 58 }}
           shadows
           gl={{ antialias: true }}
           dpr={[1, 1.5]}
           frameloop={phase === 'spinning' ? 'always' : 'demand'}
+          style={{ width: '100%', height: '100%' }}
         >
           <Suspense fallback={null}>
             <LiveScene />
           </Suspense>
         </Canvas>
-      </div>
 
-      {/* UI Layer */}
-      <div className="ui-layer flex flex-col min-h-svh">
-        <HUD />
-
-        {/* Settings button */}
-        <div className="absolute top-[60px] right-4 z-20">
+        {/* Settings button — top-right inside the canvas area */}
+        <div className="absolute top-2 right-3 z-10">
           <GameSettings />
         </div>
 
-        {/* Spacer for 3D view */}
-        <div className="flex-1" style={{ minHeight: '42vw', maxHeight: 260 }} />
+        {/* Result overlay inside canvas area */}
+        <div className="absolute bottom-2 left-3 right-3 z-10">
+          <ResultDisplay />
+        </div>
+      </div>
 
-        {/* Bottom panel */}
-        <div className="bg-casino-bg/95 backdrop-blur-md border-t border-casino-border pb-20">
-          {/* Result display */}
-          <div className="px-4 pt-3">
-            <ResultDisplay />
+      {/* ── Game Over banner ── */}
+      <AnimatePresence>
+        {isGameOver && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mx-4 mt-3 p-4 rounded-xl border border-casino-gold/50 bg-casino-gold/10 text-center"
+          >
+            <div className="text-casino-gold font-display text-lg font-bold mb-1">
+              {phase === 'goalReached' ? '🎉 目標達成！' : '💸 ゲームオーバー'}
+            </div>
+            <div className="text-white/70 text-sm mb-3">最終残高: {formatYen(bankroll)}</div>
+            <button
+              onClick={actions.reset}
+              className="px-8 py-2.5 rounded-lg bg-casino-gold text-black font-display font-bold tracking-wider"
+            >
+              もう一度
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Controls panel (scrollable) ── */}
+      {!isGameOver && (
+        <div className="flex-1 flex flex-col overflow-hidden bg-casino-bg border-t border-casino-border">
+          {/* Tab bar */}
+          <div className="flex shrink-0 border-b border-casino-border bg-casino-surface">
+            {([['bet', 'ベット'], ['strategy', '戦略'], ['chart', 'チャート']] as [Tab, string][]).map(([id, label]) => (
+              <button
+                key={id}
+                onClick={() => setTab(id)}
+                className={clsx(
+                  'flex-1 py-2.5 text-xs font-mono transition-colors relative',
+                  tab === id ? 'text-casino-gold' : 'text-casino-border'
+                )}
+              >
+                {label}
+                {tab === id && (
+                  <div className="absolute bottom-0 left-1/4 right-1/4 h-0.5 bg-casino-gold rounded-full" />
+                )}
+              </button>
+            ))}
           </div>
 
-          {/* Game over state */}
-          <AnimatePresence>
-            {isGameOver && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mx-4 mt-3 p-4 rounded-lg border border-casino-gold/40 bg-casino-gold/10 text-center"
-              >
-                <div className="text-casino-gold font-display text-lg font-bold mb-1">
-                  {phase === 'goalReached' ? '🎉 目標達成！' : '💸 ゲームオーバー'}
-                </div>
-                <div className="text-white/70 text-sm mb-3">
-                  最終残高: {formatYen(bankroll)}
-                </div>
-                <button
-                  onClick={actions.reset}
-                  className="px-6 py-2 rounded bg-casino-gold text-black font-display font-bold tracking-wider"
-                >
-                  もう一度
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Tab bar */}
-          {!isGameOver && (
-            <div className="flex border-b border-casino-border mx-4 mt-2">
-              {([['bet', 'ベット'], ['strategy', '戦略'], ['chart', 'チャート']] as [Tab, string][]).map(([id, label]) => (
-                <button
-                  key={id}
-                  onClick={() => setTab(id)}
-                  className={clsx(
-                    'flex-1 py-2 text-xs font-mono transition-colors',
-                    tab === id
-                      ? 'text-casino-gold border-b-2 border-casino-gold -mb-px'
-                      : 'text-casino-border'
-                  )}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Tab content */}
-          {!isGameOver && (
+          {/* Scrollable content */}
+          <div className="flex-1 overflow-y-auto pb-24">
             <div className="px-4 pt-3 space-y-4">
               {tab === 'bet' && (
                 <>
+                  <SpinButton onSpin={handleSpin} />
                   <BetPanel
                     selectedBet={selectedBet}
                     onBetSelect={actions.selectBet}
                     disabled={phase !== 'waiting'}
                   />
-                  <SpinButton onSpin={handleSpin} />
                   <RecommendationBox recommendation={recommendation} />
                   <StreakIndicator
                     recentResults={recentResults}
@@ -278,14 +274,14 @@ export function LivePlay() {
                     history={bankrollHistory}
                     initialBankroll={initialBankroll}
                     targetAmount={targetAmount}
-                    height={160}
+                    height={180}
                   />
                 </div>
               )}
             </div>
-          )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }
