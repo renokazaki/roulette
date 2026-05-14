@@ -2,11 +2,10 @@ import { Suspense, lazy } from 'react'
 import { createBrowserRouter, RouterProvider, Outlet } from 'react-router-dom'
 import { Navigation } from '@/components/layout/Navigation'
 
-const Home           = lazy(() => import('@/pages/Home').then(m => ({ default: m.Home })))
-const LivePlay       = lazy(() => import('@/pages/LivePlay').then(m => ({ default: m.LivePlay })))
-const MonteCarloLab  = lazy(() => import('@/pages/MonteCarloLab').then(m => ({ default: m.MonteCarloLab })))
+const Home            = lazy(() => import('@/pages/Home').then(m => ({ default: m.Home })))
+const LivePlay        = lazy(() => import('@/pages/LivePlay').then(m => ({ default: m.LivePlay })))
 const PatternAnalyzer = lazy(() => import('@/pages/PatternAnalyzer').then(m => ({ default: m.PatternAnalyzer })))
-const StrategyGuide  = lazy(() => import('@/pages/StrategyGuide').then(m => ({ default: m.StrategyGuide })))
+const StrategyGuide   = lazy(() => import('@/pages/StrategyGuide').then(m => ({ default: m.StrategyGuide })))
 
 function Layout() {
   return (
@@ -35,11 +34,10 @@ const router = createBrowserRouter([
     path: '/',
     element: <Layout />,
     children: [
-      { index: true,     element: <Home /> },
-      { path: 'play',    element: <LivePlay /> },
-      { path: 'lab',     element: <MonteCarloLab /> },
+      { index: true,      element: <Home /> },
+      { path: 'play',     element: <LivePlay /> },
       { path: 'patterns', element: <PatternAnalyzer /> },
-      { path: 'guide',   element: <StrategyGuide /> },
+      { path: 'guide',    element: <StrategyGuide /> },
     ],
   },
 ])

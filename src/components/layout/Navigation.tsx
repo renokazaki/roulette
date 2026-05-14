@@ -2,11 +2,10 @@ import { Link, useLocation } from 'react-router-dom'
 import { clsx } from 'clsx'
 
 const ROUTES = [
-  { path: '/',         label: 'ホーム',     icon: '🎰' },
-  { path: '/play',     label: 'ライブ',     icon: '▶' },
-  { path: '/lab',      label: 'MC ラボ',   icon: '📊' },
-  { path: '/patterns', label: 'パターン',   icon: '🔀' },
-  { path: '/guide',    label: 'ガイド',     icon: '📖' },
+  { path: '/',         label: 'ホーム',   icon: '🎰' },
+  { path: '/play',     label: 'ライブ',   icon: '▶' },
+  { path: '/patterns', label: 'パターン', icon: '🔀' },
+  { path: '/guide',    label: 'ガイド',   icon: '📖' },
 ]
 
 export function Navigation() {

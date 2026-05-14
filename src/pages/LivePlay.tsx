@@ -12,7 +12,7 @@ import { StreakIndicator } from '@/components/game/StreakIndicator'
 import { BankrollLineChart } from '@/components/charts/BankrollLineChart'
 import { useGameStore } from '@/stores/gameStore'
 import { calculateBet } from '@/lib/roulette/strategies'
-import { RED_NUMBERS } from '@/lib/roulette/engine'
+import { RED_NUMBERS, BET_INFO } from '@/lib/roulette/engine'
 import { formatYen } from '@/lib/utils/format'
 
 type Tab = 'bet' | 'strategy' | 'chart' | 'numbers'
@@ -164,22 +164,14 @@ function GameSettings() {
   const [tg, setTg] = useState(String(targetAmount))
   const [bb, setBb] = useState(String(baseBet))
 
-  // Lock body scroll when modal is open (prevents iOS background scroll)
+  // Lock body scroll when modal is open
   useEffect(() => {
     if (open) {
       document.body.style.overflow = 'hidden'
-      document.body.style.position = 'fixed'
-      document.body.style.width = '100%'
     } else {
       document.body.style.overflow = ''
-      document.body.style.position = ''
-      document.body.style.width = ''
     }
-    return () => {
-      document.body.style.overflow = ''
-      document.body.style.position = ''
-      document.body.style.width = ''
-    }
+    return () => { document.body.style.overflow = '' }
   }, [open])
 
   // Sync when store changes externally
@@ -221,7 +213,7 @@ function GameSettings() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/70"
+            className="fixed inset-0 z-[200] bg-black/80"
             style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
             onClick={() => setOpen(false)}
           >
@@ -591,6 +583,11 @@ export function LivePlay() {
 
   const betAmount = calculateBet(strategyState, bankroll)
 
+  // Expected return when winning
+  const betInfo = selectedBet ? BET_INFO[selectedBet] : null
+  const payoutMult = betInfo?.payout === '2:1' ? 3 : 2
+  const winReturn  = betAmount * payoutMult  // total back including stake
+
   function handleSpin() {
     if (phase !== 'waiting' || bankroll < 100) return
     actions.spin()
@@ -691,9 +688,23 @@ export function LivePlay() {
                   {/* Bet amount & next bet info */}
                   <div className="bg-casino-surface border border-casino-border rounded-xl p-3 space-y-2">
                     <BaseBetAdjuster />
+                    <div className="h-px bg-casino-border/40" />
                     <div className="flex items-center justify-between text-xs font-mono">
                       <span className="text-casino-border">次のベット</span>
-                      <span className="text-casino-gold font-bold">{formatYen(betAmount)}</span>
+                      <span className="text-white font-bold">{formatYen(betAmount)}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs font-mono">
+                      <span className="text-casino-border">倍率</span>
+                      <span className="font-bold" style={{ color: '#e8c96b' }}>
+                        ×{payoutMult}
+                        <span className="text-casino-border font-normal ml-1">
+                          ({betInfo?.payout ?? '1:1'})
+                        </span>
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs font-mono">
+                      <span className="text-casino-border">当選時 受取</span>
+                      <span className="text-casino-lime font-bold">{formatYen(winReturn)}</span>
                     </div>
                   </div>
 
