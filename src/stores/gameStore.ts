@@ -8,6 +8,7 @@ interface GameSettings {
   initialBankroll: number
   maxSpins: number
   targetAmount: number
+  baseBet: number
 }
 
 interface GameState {
@@ -16,6 +17,7 @@ interface GameState {
   spinCount: number
   maxSpins: number
   targetAmount: number
+  baseBet: number
 
   phase: 'waiting' | 'spinning' | 'result' | 'gameOver' | 'goalReached'
   selectedBet: BetType | null
@@ -37,6 +39,7 @@ interface GameState {
     updateSettings: (settings: Partial<GameSettings>) => void
     reset: () => void
     setPhase: (phase: GameState['phase']) => void
+    setBaseBet: (amount: number) => void
   }
 }
 
@@ -44,6 +47,7 @@ const DEFAULT_SETTINGS: GameSettings = {
   initialBankroll: 20000,
   maxSpins: 50,
   targetAmount: 60000,
+  baseBet: 200,
 }
 
 export const useGameStore = create<GameState>((set, get) => ({
@@ -52,11 +56,12 @@ export const useGameStore = create<GameState>((set, get) => ({
   spinCount: 0,
   maxSpins: DEFAULT_SETTINGS.maxSpins,
   targetAmount: DEFAULT_SETTINGS.targetAmount,
+  baseBet: DEFAULT_SETTINGS.baseBet,
 
   phase: 'waiting',
   selectedBet: 'red',
   currentStrategy: 'flat',
-  strategyState: getInitialState('flat', DEFAULT_SETTINGS.initialBankroll),
+  strategyState: getInitialState('flat', DEFAULT_SETTINGS.initialBankroll, DEFAULT_SETTINGS.baseBet),
 
   spinHistory: [],
   bankrollHistory: [DEFAULT_SETTINGS.initialBankroll],
@@ -91,11 +96,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         timestamp: Date.now(),
       }
 
-      const newRecentResults: WinLoss[] = [
-        ...state.recentResults.slice(-5),
-        won ? 'W' : 'L',
-      ]
-
+      const newRecentResults: WinLoss[] = [...state.recentResults.slice(-5), won ? 'W' : 'L']
       const newStrategyState = updateAfterSpin(state.strategyState, won, betAmount)
 
       let newStreak = { ...state.currentStreak }
@@ -141,20 +142,17 @@ export const useGameStore = create<GameState>((set, get) => ({
       const state = get()
       set({
         currentStrategy: strategy,
-        strategyState: getInitialState(strategy, state.bankroll),
+        strategyState: getInitialState(strategy, state.bankroll, state.baseBet),
       })
     },
 
     updateSettings(settings) {
       const state = get()
-      const newInitial = settings.initialBankroll ?? state.initialBankroll
-      const newMax = settings.maxSpins ?? state.maxSpins
-      const newTarget = settings.targetAmount ?? state.targetAmount
-      set({
-        initialBankroll: newInitial,
-        maxSpins: newMax,
-        targetAmount: newTarget,
-      })
+      const newInitial  = settings.initialBankroll ?? state.initialBankroll
+      const newMax      = settings.maxSpins        ?? state.maxSpins
+      const newTarget   = settings.targetAmount    ?? state.targetAmount
+      const newBaseBet  = settings.baseBet         ?? state.baseBet
+      set({ initialBankroll: newInitial, maxSpins: newMax, targetAmount: newTarget, baseBet: newBaseBet })
     },
 
     reset() {
@@ -164,7 +162,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         spinCount: 0,
         phase: 'waiting',
         selectedBet: 'red',
-        strategyState: getInitialState(state.currentStrategy, state.initialBankroll),
+        strategyState: getInitialState(state.currentStrategy, state.initialBankroll, state.baseBet),
         spinHistory: [],
         bankrollHistory: [state.initialBankroll],
         lastResult: null,
@@ -176,6 +174,15 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     setPhase(phase) {
       set({ phase })
+    },
+
+    setBaseBet(amount) {
+      const state = get()
+      const clamped = Math.max(100, Math.min(amount, Math.floor(state.bankroll * 0.3)))
+      set({
+        baseBet: clamped,
+        strategyState: getInitialState(state.currentStrategy, state.bankroll, clamped),
+      })
     },
   },
 }))

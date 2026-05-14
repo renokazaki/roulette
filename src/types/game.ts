@@ -36,6 +36,10 @@ export type StrategyId =
   | 'dalembert'
   | 'aggressive_pct'
   | 'fibonacci'
+  | 'paroli'
+  | 'oscar_grind'
+  | 'one_three_two_six'
+  | 'labouchere'
 
 export type StrategyState =
   | { id: 'flat'; bet: number }
@@ -44,6 +48,10 @@ export type StrategyState =
   | { id: 'dalembert'; bet: number; base: number }
   | { id: 'aggressive_pct'; percentage: number }
   | { id: 'fibonacci'; sequence: number[]; index: number; base: number }
+  | { id: 'paroli'; bet: number; base: number; winStreak: number }
+  | { id: 'oscar_grind'; bet: number; base: number; sessionPnl: number }
+  | { id: 'one_three_two_six'; step: number; base: number }
+  | { id: 'labouchere'; sequence: number[]; base: number }
 
 export interface StrategyInfo {
   id: StrategyId

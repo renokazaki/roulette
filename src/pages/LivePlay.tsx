@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { motion, AnimatePresence } from 'framer-motion'
 import { clsx } from 'clsx'
@@ -6,34 +6,46 @@ import { LiveScene } from '@/three/scenes/LiveScene'
 import { HUD } from '@/components/layout/HUD'
 import { BetPanel } from '@/components/game/BetPanel'
 import { StrategySelector } from '@/components/game/StrategySelector'
-import { SpinButton } from '@/components/game/SpinButton'
 import { ResultDisplay } from '@/components/game/ResultDisplay'
 import { RecommendationBox } from '@/components/game/RecommendationBox'
 import { StreakIndicator } from '@/components/game/StreakIndicator'
 import { BankrollLineChart } from '@/components/charts/BankrollLineChart'
 import { useGameStore } from '@/stores/gameStore'
+import { calculateBet } from '@/lib/roulette/strategies'
 import { formatYen } from '@/lib/utils/format'
 
 type Tab = 'bet' | 'strategy' | 'chart'
 
+// ─────────────────────────────────────────────
+// Settings modal (bottom sheet)
+// ─────────────────────────────────────────────
 function GameSettings() {
   const initialBankroll = useGameStore(s => s.initialBankroll)
-  const maxSpins = useGameStore(s => s.maxSpins)
-  const targetAmount = useGameStore(s => s.targetAmount)
-  const updateSettings = useGameStore(s => s.actions.updateSettings)
-  const reset = useGameStore(s => s.actions.reset)
-  const phase = useGameStore(s => s.phase)
+  const maxSpins        = useGameStore(s => s.maxSpins)
+  const targetAmount    = useGameStore(s => s.targetAmount)
+  const baseBet         = useGameStore(s => s.baseBet)
+  const updateSettings  = useGameStore(s => s.actions.updateSettings)
+  const reset           = useGameStore(s => s.actions.reset)
+  const phase           = useGameStore(s => s.phase)
 
   const [open, setOpen] = useState(false)
   const [bk, setBk] = useState(String(initialBankroll))
   const [sp, setSp] = useState(String(maxSpins))
   const [tg, setTg] = useState(String(targetAmount))
+  const [bb, setBb] = useState(String(baseBet))
+
+  // sync when store changes externally
+  useEffect(() => { setBk(String(initialBankroll)) }, [initialBankroll])
+  useEffect(() => { setSp(String(maxSpins)) },        [maxSpins])
+  useEffect(() => { setTg(String(targetAmount)) },    [targetAmount])
+  useEffect(() => { setBb(String(baseBet)) },         [baseBet])
 
   function apply() {
-    const nb = parseInt(bk), ns = parseInt(sp), nt = parseInt(tg)
-    if (!isNaN(nb) && nb >= 1000) updateSettings({ initialBankroll: nb })
-    if (!isNaN(ns) && ns >= 5 && ns <= 200) updateSettings({ maxSpins: ns })
-    if (!isNaN(nt) && nt > nb) updateSettings({ targetAmount: nt })
+    const nb = parseInt(bk), ns = parseInt(sp), nt = parseInt(tg), nbb = parseInt(bb)
+    if (!isNaN(nb)  && nb  >= 1000)       updateSettings({ initialBankroll: nb })
+    if (!isNaN(ns)  && ns  >= 5 && ns <= 200) updateSettings({ maxSpins: ns })
+    if (!isNaN(nt)  && nt  > nb)          updateSettings({ targetAmount: nt })
+    if (!isNaN(nbb) && nbb >= 100)        updateSettings({ baseBet: nbb })
     reset()
     setOpen(false)
   }
@@ -64,67 +76,65 @@ function GameSettings() {
               exit={{ y: '100%' }}
               transition={{ type: 'spring', stiffness: 400, damping: 40 }}
               onClick={e => e.stopPropagation()}
-              className="w-full max-w-lg bg-casino-surface border-t border-casino-border rounded-t-2xl p-6 safe-bottom"
+              className="w-full max-w-lg bg-casino-surface border-t border-casino-border rounded-t-2xl flex flex-col"
+              style={{ maxHeight: '88vh' }}
             >
-              <div className="w-8 h-1 bg-casino-border rounded-full mx-auto mb-4" />
-              <h3 className="text-casino-gold font-display text-lg mb-4">ゲーム設定</h3>
+              {/* Fixed header */}
+              <div className="shrink-0 px-6 pt-4 pb-3">
+                <div className="w-8 h-1 bg-casino-border rounded-full mx-auto mb-3" />
+                <h3 className="text-casino-gold font-display text-lg">ゲーム設定</h3>
+              </div>
 
-              <div className="space-y-4">
+              {/* Scrollable fields */}
+              <div className="flex-1 overflow-y-auto px-6 space-y-4 pb-2">
                 <div>
                   <label className="text-[10px] font-mono text-casino-border uppercase tracking-wider">初期資金 (¥)</label>
-                  <input
-                    type="number"
-                    value={bk}
-                    onChange={e => setBk(e.target.value)}
+                  <input type="number" value={bk} onChange={e => setBk(e.target.value)}
                     className="w-full mt-1 bg-casino-bg border border-casino-border rounded px-3 py-2.5 text-white font-mono text-sm focus:border-casino-gold outline-none"
-                    min={1000} step={1000}
-                  />
+                    min={1000} step={1000} />
                 </div>
                 <div>
                   <label className="text-[10px] font-mono text-casino-border uppercase tracking-wider">最大スピン数</label>
-                  <input
-                    type="number"
-                    value={sp}
-                    onChange={e => setSp(e.target.value)}
+                  <input type="number" value={sp} onChange={e => setSp(e.target.value)}
                     className="w-full mt-1 bg-casino-bg border border-casino-border rounded px-3 py-2.5 text-white font-mono text-sm focus:border-casino-gold outline-none"
-                    min={5} max={200} step={5}
-                  />
+                    min={5} max={200} step={5} />
                 </div>
                 <div>
                   <label className="text-[10px] font-mono text-casino-border uppercase tracking-wider">目標資金 (¥)</label>
-                  <input
-                    type="number"
-                    value={tg}
-                    onChange={e => setTg(e.target.value)}
+                  <input type="number" value={tg} onChange={e => setTg(e.target.value)}
                     className="w-full mt-1 bg-casino-bg border border-casino-border rounded px-3 py-2.5 text-white font-mono text-sm focus:border-casino-gold outline-none"
-                    min={parseInt(bk) + 1000} step={1000}
-                  />
-                  <div className="text-[10px] text-casino-border mt-1 font-mono">
-                    目標倍率: ×{parseInt(tg) > 0 && parseInt(bk) > 0 ? (parseInt(tg) / parseInt(bk)).toFixed(1) : '--'}
-                  </div>
+                    min={parseInt(bk) + 1000} step={1000} />
+                  <p className="text-[10px] text-casino-border mt-1 font-mono">
+                    目標倍率: ×{parseInt(tg) > 0 && parseInt(bk) > 0 ? (parseInt(tg)/parseInt(bk)).toFixed(1) : '--'}
+                  </p>
+                </div>
+                <div>
+                  <label className="text-[10px] font-mono text-casino-border uppercase tracking-wider">基本ベット額 (¥) — 戦略の1単位</label>
+                  <input type="number" value={bb} onChange={e => setBb(e.target.value)}
+                    className="w-full mt-1 bg-casino-bg border border-casino-border rounded px-3 py-2.5 text-white font-mono text-sm focus:border-casino-gold outline-none"
+                    min={100} step={100} />
+                  <p className="text-[10px] text-casino-border mt-1 font-mono">
+                    初期資金の{parseInt(bb) > 0 && parseInt(bk) > 0 ? ((parseInt(bb)/parseInt(bk))*100).toFixed(1) : '--'}%
+                  </p>
                 </div>
               </div>
 
-              <div className="flex gap-3 mt-5">
-                <button
-                  onClick={() => setOpen(false)}
-                  className="flex-1 py-3 rounded-lg border border-casino-border text-casino-border font-ui font-medium"
-                >
-                  キャンセル
-                </button>
-                <button
-                  onClick={apply}
-                  disabled={!canEdit}
-                  className="flex-1 py-3 rounded-lg bg-casino-gold text-black font-display font-bold tracking-wider disabled:opacity-50"
-                >
-                  適用 & リセット
-                </button>
+              {/* Sticky footer — always visible */}
+              <div className="shrink-0 px-6 pt-3 pb-4 safe-bottom border-t border-casino-border/40 bg-casino-surface">
+                <div className="flex gap-3">
+                  <button onClick={() => setOpen(false)}
+                    className="flex-1 py-3 rounded-lg border border-casino-border text-casino-border font-ui font-medium text-sm">
+                    キャンセル
+                  </button>
+                  <button onClick={apply} disabled={!canEdit}
+                    className="flex-1 py-3 rounded-lg bg-casino-gold text-black font-display font-bold tracking-wider text-sm disabled:opacity-50">
+                    適用 &amp; リセット
+                  </button>
+                </div>
+                {!canEdit && (
+                  <p className="text-center text-xs text-red-400 mt-2 font-mono">ゲーム終了後に変更できます</p>
+                )}
               </div>
-              {!canEdit && (
-                <p className="text-center text-xs text-red-400 mt-2 font-mono">
-                  ゲーム終了後に変更できます
-                </p>
-              )}
             </motion.div>
           </motion.div>
         )}
@@ -133,31 +143,272 @@ function GameSettings() {
   )
 }
 
+// ─────────────────────────────────────────────
+// Bet amount quick adjuster
+// ─────────────────────────────────────────────
+function BaseBetAdjuster() {
+  const baseBet    = useGameStore(s => s.baseBet)
+  const bankroll   = useGameStore(s => s.bankroll)
+  const setBaseBet = useGameStore(s => s.actions.setBaseBet)
+  const phase      = useGameStore(s => s.phase)
+  const disabled   = phase === 'spinning'
+
+  const steps = [100, 200, 500, 1000, 2000, 5000]
+  function decrease() {
+    const idx = steps.findLastIndex(s => s < baseBet)
+    if (idx >= 0) setBaseBet(steps[idx])
+    else setBaseBet(Math.max(100, baseBet - 100))
+  }
+  function increase() {
+    const idx = steps.findIndex(s => s > baseBet)
+    const next = idx >= 0 ? steps[idx] : baseBet + 500
+    setBaseBet(Math.min(next, Math.floor(bankroll * 0.3)))
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-[10px] font-mono text-casino-border uppercase tracking-wider whitespace-nowrap">
+        基本ベット
+      </span>
+      <button onClick={decrease} disabled={disabled || baseBet <= 100}
+        className="w-8 h-8 rounded-lg border border-casino-border text-white font-mono text-lg flex items-center justify-center active:scale-90 transition-transform disabled:opacity-30">
+        −
+      </button>
+      <div className="flex-1 text-center font-mono font-bold text-casino-gold text-base">
+        {formatYen(baseBet)}
+      </div>
+      <button onClick={increase} disabled={disabled || baseBet >= bankroll * 0.3}
+        className="w-8 h-8 rounded-lg border border-casino-border text-white font-mono text-lg flex items-center justify-center active:scale-90 transition-transform disabled:opacity-30">
+        ＋
+      </button>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────
+// Auto-spin controls
+// ─────────────────────────────────────────────
+const AUTO_COUNTS = [5, 10, 20, 50]
+
+interface AutoSpinBarProps {
+  onManualSpin: () => void
+}
+
+function AutoSpinBar({ onManualSpin }: AutoSpinBarProps) {
+  const phase      = useGameStore(s => s.phase)
+  const spinCount  = useGameStore(s => s.spinCount)
+  const maxSpins   = useGameStore(s => s.maxSpins)
+  const bankroll   = useGameStore(s => s.bankroll)
+  const actions    = useGameStore(s => s.actions)
+
+  const [autoTarget,    setAutoTarget]    = useState(10)
+  const [autoRemaining, setAutoRemaining] = useState(0)
+  const [isAuto,        setIsAuto]        = useState(false)
+  const [autoSpeed,     setAutoSpeed]     = useState<'normal' | 'fast'>('normal')
+
+  const isAutoRef    = useRef(false)
+  const remainingRef = useRef(0)
+
+  const spinDuration = autoSpeed === 'fast' ? 900 : 3000
+
+  // Sync ref with state
+  useEffect(() => { isAutoRef.current    = isAuto        }, [isAuto])
+  useEffect(() => { remainingRef.current = autoRemaining }, [autoRemaining])
+
+  // Phase monitor: when result arrives during auto-spin, schedule next spin
+  useEffect(() => {
+    if (!isAutoRef.current) return
+    const isTerminal = phase === 'gameOver' || phase === 'goalReached'
+    if (isTerminal) {
+      stopAuto()
+      return
+    }
+    if (phase === 'result') {
+      if (remainingRef.current > 1) {
+        const t = setTimeout(() => {
+          if (!isAutoRef.current) return
+          setAutoRemaining(n => n - 1)
+          triggerSpin()
+        }, autoSpeed === 'fast' ? 400 : 900)
+        return () => clearTimeout(t)
+      } else {
+        stopAuto()
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase])
+
+  // Spinning → result transition
+  useEffect(() => {
+    if (phase !== 'spinning') return
+    const t = setTimeout(() => actions.setPhase('result'), spinDuration)
+    return () => clearTimeout(t)
+  }, [phase, actions, spinDuration])
+
+  function triggerSpin() {
+    if (bankroll < 100) return
+    const canSpin = phase === 'waiting' || phase === 'result'
+    if (!canSpin) return
+    // Set waiting first if still on result
+    if (phase === 'result') actions.setPhase('waiting')
+    setTimeout(() => {
+      actions.spin()
+      actions.setPhase('spinning')
+    }, phase === 'result' ? 50 : 0)
+  }
+
+  function startAuto() {
+    setIsAuto(true)
+    isAutoRef.current = true
+    setAutoRemaining(autoTarget)
+    remainingRef.current = autoTarget
+    onManualSpin() // triggers initial spin via parent
+  }
+
+  function stopAuto() {
+    setIsAuto(false)
+    isAutoRef.current = false
+    setAutoRemaining(0)
+  }
+
+  const isSpinning = phase === 'spinning'
+  const isTerminal = phase === 'gameOver' || phase === 'goalReached'
+  const canStart   = (phase === 'waiting') && bankroll >= 100 && !isTerminal
+  const spinsLeft  = maxSpins - spinCount
+
+  return (
+    <div className="space-y-2">
+      {/* Manual SPIN button */}
+      {!isAuto && (
+        <motion.button
+          onClick={() => { onManualSpin() }}
+          disabled={phase !== 'waiting' || bankroll < 100}
+          whileTap={{ scale: 0.96 }}
+          className={clsx(
+            'w-full py-4 rounded-xl font-display text-xl font-bold tracking-widest transition-all',
+            phase === 'waiting' && bankroll >= 100
+              ? 'bg-casino-gold text-black shadow-gold active:shadow-none'
+              : isSpinning
+                ? 'bg-casino-border/50 text-casino-border cursor-not-allowed'
+                : 'bg-casino-surface text-casino-border border border-casino-border cursor-not-allowed'
+          )}
+        >
+          {isSpinning ? <span className="flex items-center justify-center gap-2"><span className="animate-spin inline-block">⟳</span>スピン中</span> : 'SPIN'}
+        </motion.button>
+      )}
+
+      {/* Auto-spin running banner */}
+      {isAuto && (
+        <div className="flex items-center gap-3 bg-casino-gold/10 border border-casino-gold/40 rounded-xl px-4 py-3">
+          <div className="flex-1">
+            <div className="text-casino-gold font-mono text-xs font-bold">AUTO SPIN 実行中</div>
+            <div className="text-white/70 text-xs font-mono mt-0.5">
+              残り {autoRemaining} / {autoTarget} スピン
+            </div>
+            {/* progress bar */}
+            <div className="mt-1.5 h-1 bg-casino-border rounded-full overflow-hidden">
+              <div
+                className="h-full bg-casino-gold rounded-full transition-all duration-300"
+                style={{ width: `${((autoTarget - autoRemaining) / autoTarget) * 100}%` }}
+              />
+            </div>
+          </div>
+          <button onClick={stopAuto}
+            className="px-3 py-1.5 rounded-lg bg-red-500/20 border border-red-500/40 text-red-400 text-xs font-mono active:scale-95 transition-transform">
+            停止
+          </button>
+        </div>
+      )}
+
+      {/* Auto-spin config */}
+      {!isAuto && !isSpinning && (
+        <div className="bg-casino-surface border border-casino-border rounded-xl p-3 space-y-2">
+          <div className="text-[10px] font-mono text-casino-border uppercase tracking-wider">自動スピン</div>
+          <div className="flex items-center gap-1.5">
+            {AUTO_COUNTS.map(n => (
+              <button
+                key={n}
+                onClick={() => setAutoTarget(n)}
+                className={clsx(
+                  'flex-1 py-1.5 rounded-lg text-xs font-mono transition-all',
+                  autoTarget === n
+                    ? 'bg-casino-gold/20 border border-casino-gold/60 text-casino-gold'
+                    : 'border border-casino-border text-casino-border'
+                )}
+              >
+                {n}回
+              </button>
+            ))}
+            <button
+              onClick={() => setAutoTarget(spinsLeft)}
+              className={clsx(
+                'flex-1 py-1.5 rounded-lg text-xs font-mono transition-all',
+                autoTarget === spinsLeft
+                  ? 'bg-casino-gold/20 border border-casino-gold/60 text-casino-gold'
+                  : 'border border-casino-border text-casino-border'
+              )}
+            >
+              全部
+            </button>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-casino-border font-mono">速度:</span>
+            {(['normal', 'fast'] as const).map(s => (
+              <button
+                key={s}
+                onClick={() => setAutoSpeed(s)}
+                className={clsx(
+                  'px-2.5 py-1 rounded text-[10px] font-mono transition-all',
+                  autoSpeed === s
+                    ? 'bg-casino-gold/20 border border-casino-gold/60 text-casino-gold'
+                    : 'border border-casino-border text-casino-border'
+                )}
+              >
+                {s === 'normal' ? '通常' : '高速'}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={startAuto}
+            disabled={!canStart}
+            className={clsx(
+              'w-full py-2.5 rounded-lg text-sm font-display font-bold tracking-wider transition-all',
+              canStart
+                ? 'bg-casino-gold/20 border border-casino-gold/50 text-casino-gold active:scale-98'
+                : 'bg-casino-border/20 border border-casino-border text-casino-border cursor-not-allowed'
+            )}
+          >
+            ▶▶ AUTO ×{autoTarget}
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────
+// Main LivePlay page
+// ─────────────────────────────────────────────
 export function LivePlay() {
-  const phase = useGameStore(s => s.phase)
-  const selectedBet = useGameStore(s => s.selectedBet)
+  const phase           = useGameStore(s => s.phase)
+  const selectedBet     = useGameStore(s => s.selectedBet)
   const currentStrategy = useGameStore(s => s.currentStrategy)
   const bankrollHistory = useGameStore(s => s.bankrollHistory)
-  const recentResults = useGameStore(s => s.recentResults)
-  const currentStreak = useGameStore(s => s.currentStreak)
-  const recommendation = useGameStore(s => s.currentRecommendation)
+  const recentResults   = useGameStore(s => s.recentResults)
+  const currentStreak   = useGameStore(s => s.currentStreak)
+  const recommendation  = useGameStore(s => s.currentRecommendation)
   const initialBankroll = useGameStore(s => s.initialBankroll)
-  const targetAmount = useGameStore(s => s.targetAmount)
-  const bankroll = useGameStore(s => s.bankroll)
-  const actions = useGameStore(s => s.actions)
+  const targetAmount    = useGameStore(s => s.targetAmount)
+  const bankroll        = useGameStore(s => s.bankroll)
+  const strategyState   = useGameStore(s => s.strategyState)
+  const actions         = useGameStore(s => s.actions)
 
   const [tab, setTab] = useState<Tab>('bet')
 
-  useEffect(() => {
-    if (phase === 'spinning') {
-      const t = setTimeout(() => {
-        actions.setPhase('result')
-      }, 3200)
-      return () => clearTimeout(t)
-    }
-  }, [phase, actions])
+  const betAmount = calculateBet(strategyState, bankroll)
 
   function handleSpin() {
+    if (phase !== 'waiting' || bankroll < 100) return
     actions.spin()
     actions.setPhase('spinning')
   }
@@ -167,11 +418,11 @@ export function LivePlay() {
   return (
     <div className="flex flex-col min-h-svh bg-casino-bg">
 
-      {/* ── HUD ── */}
+      {/* HUD */}
       <HUD />
 
-      {/* ── 3D Canvas (block, not fixed) ── */}
-      <div className="relative bg-casino-bg" style={{ height: '44vh', minHeight: 260, maxHeight: 380 }}>
+      {/* 3D Canvas */}
+      <div className="relative bg-casino-bg shrink-0" style={{ height: '42vh', minHeight: 240, maxHeight: 360 }}>
         <Canvas
           camera={{ position: [0, 5, 10], fov: 58 }}
           shadows
@@ -185,18 +436,18 @@ export function LivePlay() {
           </Suspense>
         </Canvas>
 
-        {/* Settings button — top-right inside the canvas area */}
+        {/* Settings button */}
         <div className="absolute top-2 right-3 z-10">
           <GameSettings />
         </div>
 
-        {/* Result overlay inside canvas area */}
+        {/* Result overlay */}
         <div className="absolute bottom-2 left-3 right-3 z-10">
           <ResultDisplay />
         </div>
       </div>
 
-      {/* ── Game Over banner ── */}
+      {/* Game over */}
       <AnimatePresence>
         {isGameOver && (
           <motion.div
@@ -208,56 +459,61 @@ export function LivePlay() {
               {phase === 'goalReached' ? '🎉 目標達成！' : '💸 ゲームオーバー'}
             </div>
             <div className="text-white/70 text-sm mb-3">最終残高: {formatYen(bankroll)}</div>
-            <button
-              onClick={actions.reset}
-              className="px-8 py-2.5 rounded-lg bg-casino-gold text-black font-display font-bold tracking-wider"
-            >
+            <button onClick={actions.reset}
+              className="px-8 py-2.5 rounded-lg bg-casino-gold text-black font-display font-bold tracking-wider">
               もう一度
             </button>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ── Controls panel (scrollable) ── */}
+      {/* Controls */}
       {!isGameOver && (
         <div className="flex-1 flex flex-col overflow-hidden bg-casino-bg border-t border-casino-border">
-          {/* Tab bar */}
+          {/* Tabs */}
           <div className="flex shrink-0 border-b border-casino-border bg-casino-surface">
             {([['bet', 'ベット'], ['strategy', '戦略'], ['chart', 'チャート']] as [Tab, string][]).map(([id, label]) => (
-              <button
-                key={id}
-                onClick={() => setTab(id)}
+              <button key={id} onClick={() => setTab(id)}
                 className={clsx(
                   'flex-1 py-2.5 text-xs font-mono transition-colors relative',
                   tab === id ? 'text-casino-gold' : 'text-casino-border'
-                )}
-              >
+                )}>
                 {label}
-                {tab === id && (
-                  <div className="absolute bottom-0 left-1/4 right-1/4 h-0.5 bg-casino-gold rounded-full" />
-                )}
+                {tab === id && <div className="absolute bottom-0 left-1/4 right-1/4 h-0.5 bg-casino-gold rounded-full" />}
               </button>
             ))}
           </div>
 
-          {/* Scrollable content */}
+          {/* Scrollable tab content */}
           <div className="flex-1 overflow-y-auto pb-24">
-            <div className="px-4 pt-3 space-y-4">
+            <div className="px-4 pt-3 space-y-3">
+
               {tab === 'bet' && (
                 <>
-                  <SpinButton onSpin={handleSpin} />
+                  {/* Bet amount & next bet info */}
+                  <div className="bg-casino-surface border border-casino-border rounded-xl p-3 space-y-2">
+                    <BaseBetAdjuster />
+                    <div className="flex items-center justify-between text-xs font-mono">
+                      <span className="text-casino-border">次のベット</span>
+                      <span className="text-casino-gold font-bold">{formatYen(betAmount)}</span>
+                    </div>
+                  </div>
+
+                  {/* Spin + auto-spin */}
+                  <AutoSpinBar onManualSpin={handleSpin} />
+
+                  {/* Bet type selector */}
                   <BetPanel
                     selectedBet={selectedBet}
                     onBetSelect={actions.selectBet}
                     disabled={phase !== 'waiting'}
                   />
+
                   <RecommendationBox recommendation={recommendation} />
-                  <StreakIndicator
-                    recentResults={recentResults}
-                    currentStreak={currentStreak}
-                  />
+                  <StreakIndicator recentResults={recentResults} currentStreak={currentStreak} />
                 </>
               )}
+
               {tab === 'strategy' && (
                 <StrategySelector
                   selected={currentStrategy}
@@ -265,11 +521,10 @@ export function LivePlay() {
                   disabled={phase === 'spinning'}
                 />
               )}
+
               {tab === 'chart' && (
                 <div>
-                  <div className="text-[10px] font-mono text-casino-border uppercase tracking-wider mb-2">
-                    資産推移
-                  </div>
+                  <div className="text-[10px] font-mono text-casino-border uppercase tracking-wider mb-2">資産推移</div>
                   <BankrollLineChart
                     history={bankrollHistory}
                     initialBankroll={initialBankroll}
