@@ -17,11 +17,9 @@ import { formatYen } from '@/lib/utils/format'
 type Tab = 'bet' | 'strategy' | 'chart'
 
 function GameSettings() {
-  const { initialBankroll, maxSpins, targetAmount } = useGameStore(s => ({
-    initialBankroll: s.initialBankroll,
-    maxSpins: s.maxSpins,
-    targetAmount: s.targetAmount,
-  }))
+  const initialBankroll = useGameStore(s => s.initialBankroll)
+  const maxSpins = useGameStore(s => s.maxSpins)
+  const targetAmount = useGameStore(s => s.targetAmount)
   const updateSettings = useGameStore(s => s.actions.updateSettings)
   const reset = useGameStore(s => s.actions.reset)
   const phase = useGameStore(s => s.phase)
