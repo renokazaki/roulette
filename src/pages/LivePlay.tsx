@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useRef, useState } from 'react'
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { motion, AnimatePresence } from 'framer-motion'
 import { clsx } from 'clsx'
@@ -12,9 +12,139 @@ import { StreakIndicator } from '@/components/game/StreakIndicator'
 import { BankrollLineChart } from '@/components/charts/BankrollLineChart'
 import { useGameStore } from '@/stores/gameStore'
 import { calculateBet } from '@/lib/roulette/strategies'
+import { RED_NUMBERS } from '@/lib/roulette/engine'
 import { formatYen } from '@/lib/utils/format'
 
-type Tab = 'bet' | 'strategy' | 'chart'
+type Tab = 'bet' | 'strategy' | 'chart' | 'numbers'
+
+// ─────────────────────────────────────────────
+// Number heatmap
+// ─────────────────────────────────────────────
+// American roulette layout: 0 and 00 at top, 1-36 in 6-column grid
+const GRID_NUMBERS: Array<number | '00'> = [
+  1,  2,  3,  4,  5,  6,
+  7,  8,  9, 10, 11, 12,
+ 13, 14, 15, 16, 17, 18,
+ 19, 20, 21, 22, 23, 24,
+ 25, 26, 27, 28, 29, 30,
+ 31, 32, 33, 34, 35, 36,
+]
+
+function NumberHeatmap() {
+  const spinHistory = useGameStore(s => s.spinHistory)
+
+  const hits = useMemo(() => {
+    const map: Record<string, number> = {}
+    for (const s of spinHistory) {
+      const key = String(s.result.number)
+      map[key] = (map[key] || 0) + 1
+    }
+    return map
+  }, [spinHistory])
+
+  const maxHit = Math.max(1, ...Object.values(hits))
+  const totalSpins = spinHistory.length
+
+  function baseColor(n: number | '00') {
+    if (n === 0 || n === '00') return { r: 22, g: 163, b: 74 }   // green-600
+    if (RED_NUMBERS.has(n as number)) return { r: 220, g: 38, b: 38 }  // red-600
+    return { r: 30, g: 30, b: 40 }  // near-black
+  }
+
+  function NumCell({ n }: { n: number | '00' }) {
+    const key = String(n)
+    const count = hits[key] || 0
+    const intensity = count / maxHit  // 0–1
+    const pct = totalSpins > 0 ? ((count / totalSpins) * 100).toFixed(0) : '0'
+    const { r, g, b } = baseColor(n)
+    const alpha = intensity > 0 ? 0.25 + intensity * 0.75 : 0.12
+    const isHot = intensity >= 0.7
+    const isCold = totalSpins > 0 && count === 0
+
+    return (
+      <div
+        className={clsx(
+          'relative flex flex-col items-center justify-center rounded select-none',
+          isHot && 'animate-pulse-hot'
+        )}
+        style={{
+          aspectRatio: '1',
+          backgroundColor: `rgba(${r},${g},${b},${alpha})`,
+          border: isHot
+            ? `1px solid rgba(${r},${g},${b},0.9)`
+            : isCold
+              ? '1px solid rgba(42,42,50,0.6)'
+              : `1px solid rgba(${r},${g},${b},0.35)`,
+          boxShadow: isHot ? `0 0 8px rgba(${r},${g},${b},0.6)` : undefined,
+        }}
+      >
+        <span className="text-[9px] font-mono font-bold text-white leading-none">{n}</span>
+        {count > 0 && (
+          <span className="text-[7px] font-mono leading-none mt-0.5" style={{ color: `rgba(255,255,255,${0.5 + intensity * 0.5})` }}>
+            {count}
+          </span>
+        )}
+        {count > 0 && (
+          <span className="text-[6px] font-mono leading-none" style={{ color: `rgba(255,255,255,0.4)` }}>
+            {pct}%
+          </span>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="text-[10px] font-mono text-casino-border uppercase tracking-wider">出目ヒートマップ</div>
+        <div className="text-[9px] font-mono text-casino-border">{totalSpins}スピン</div>
+      </div>
+
+      {totalSpins === 0 && (
+        <p className="text-center text-casino-border text-xs font-mono py-6">スピンするとデータが表示されます</p>
+      )}
+
+      {/* 0 / 00 row */}
+      <div className="grid grid-cols-2 gap-1">
+        {([0, '00'] as const).map(n => (
+          <div key={String(n)}
+            className="rounded flex items-center justify-center relative"
+            style={{
+              aspectRatio: '4/1',
+              background: `rgba(22,163,74,${(hits[String(n)] || 0) / maxHit > 0 ? 0.25 + ((hits[String(n)] || 0) / maxHit) * 0.6 : 0.12})`,
+              border: `1px solid rgba(22,163,74,${(hits[String(n)] || 0) > 0 ? 0.6 : 0.25})`,
+            }}
+          >
+            <span className="text-[11px] font-mono font-bold text-green-400">{n}</span>
+            {(hits[String(n)] || 0) > 0 && (
+              <span className="text-[9px] font-mono text-green-400/70 ml-1">×{hits[String(n)]}</span>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* 1–36 grid (6 columns) */}
+      <div className="grid grid-cols-6 gap-1">
+        {GRID_NUMBERS.map(n => <NumCell key={String(n)} n={n} />)}
+      </div>
+
+      {/* Legend */}
+      <div className="flex items-center gap-2 pt-1">
+        <span className="text-[9px] font-mono text-casino-border">冷</span>
+        <div className="flex-1 h-1.5 rounded-full" style={{ background: 'linear-gradient(90deg, rgba(255,255,255,0.08), rgba(220,38,38,0.9))' }} />
+        <span className="text-[9px] font-mono text-casino-border">熱</span>
+        <div className="ml-3 flex items-center gap-1">
+          <div className="w-2 h-2 rounded-sm bg-green-600/80" />
+          <span className="text-[9px] font-mono text-casino-border">0/00</span>
+          <div className="w-2 h-2 rounded-sm bg-red-600/80 ml-1" />
+          <span className="text-[9px] font-mono text-casino-border">赤</span>
+          <div className="w-2 h-2 rounded-sm ml-1" style={{ background: 'rgba(30,30,40,0.8)', border: '1px solid rgba(255,255,255,0.2)' }} />
+          <span className="text-[9px] font-mono text-casino-border">黒</span>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 // ─────────────────────────────────────────────
 // Settings modal (bottom sheet)
@@ -533,23 +663,27 @@ export function LivePlay() {
 
       {/* Controls */}
       {!isGameOver && (
-        <div className="flex-1 flex flex-col overflow-hidden bg-casino-bg border-t border-casino-border">
+        <div className="flex-1 flex flex-col overflow-hidden border-t border-casino-border/60" style={{ background: 'linear-gradient(180deg, #0d0608 0%, #090909 100%)' }}>
           {/* Tabs */}
-          <div className="flex shrink-0 border-b border-casino-border bg-casino-surface">
-            {([['bet', 'ベット'], ['strategy', '戦略'], ['chart', 'チャート']] as [Tab, string][]).map(([id, label]) => (
+          <div className="flex shrink-0 border-b border-casino-border/60 relative" style={{ background: 'linear-gradient(180deg, #18151a 0%, #141418 100%)' }}>
+            <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-casino-gold/20 to-transparent" />
+            {([['bet', 'ベット'], ['strategy', '戦略'], ['chart', 'チャート'], ['numbers', '出目']] as [Tab, string][]).map(([id, label]) => (
               <button key={id} onClick={() => setTab(id)}
                 className={clsx(
-                  'flex-1 py-2.5 text-xs font-mono transition-colors relative',
+                  'flex-1 py-2.5 text-[11px] font-mono transition-colors relative',
                   tab === id ? 'text-casino-gold' : 'text-casino-border'
                 )}>
                 {label}
-                {tab === id && <div className="absolute bottom-0 left-1/4 right-1/4 h-0.5 bg-casino-gold rounded-full" />}
+                {tab === id && (
+                  <div className="absolute bottom-0 left-1/4 right-1/4 h-0.5 rounded-full"
+                    style={{ background: 'linear-gradient(90deg, transparent, #d4aa3a, transparent)' }} />
+                )}
               </button>
             ))}
           </div>
 
           {/* Scrollable tab content */}
-          <div className="flex-1 overflow-y-auto pb-24">
+          <div className="flex-1 overflow-y-auto pb-24 casino-felt">
             <div className="px-4 pt-3 space-y-3">
 
               {tab === 'bet' && (
@@ -597,6 +731,8 @@ export function LivePlay() {
                   />
                 </div>
               )}
+
+              {tab === 'numbers' && <NumberHeatmap />}
             </div>
           </div>
         </div>
