@@ -51,7 +51,8 @@ export function CasinoEnvironment() {
       {/* Dramatic red under-glow */}
       <pointLight position={[0, -1.2, 0]} intensity={8} color="#aa1828" />
 
-      <fog attach="fog" args={["#08080f", 24, 52]} />
+      <color attach="background" args={['#1c0a0a']} />
+      <fog attach="fog" args={["#1c0a0a", 22, 48]} />
 
       {/* Floating gold dust particles */}
       <points ref={particleRef}>

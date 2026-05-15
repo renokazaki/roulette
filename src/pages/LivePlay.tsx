@@ -585,8 +585,8 @@ export function LivePlay() {
 
   // Expected return when winning
   const betInfo = selectedBet ? BET_INFO[selectedBet] : null
-  const payoutMult = betInfo?.payout === '2:1' ? 3 : 2
-  const winReturn  = betAmount * payoutMult  // total back including stake
+  const betPayout = betInfo?.payout ?? '1:1'
+  const winProfit = betAmount * (betPayout === '2:1' ? 2 : 1)  // net profit = actual bankroll change
 
   function handleSpin() {
     if (phase !== 'waiting' || bankroll < 100) return
@@ -709,17 +709,14 @@ export function LivePlay() {
                       <span className="text-white font-bold">{formatYen(betAmount)}</span>
                     </div>
                     <div className="flex items-center justify-between text-xs font-mono">
-                      <span className="text-casino-border">倍率</span>
+                      <span className="text-casino-border">オッズ</span>
                       <span className="font-bold" style={{ color: '#e8c96b' }}>
-                        ×{payoutMult}
-                        <span className="text-casino-border font-normal ml-1">
-                          ({betInfo?.payout ?? '1:1'})
-                        </span>
+                        {betPayout}
                       </span>
                     </div>
                     <div className="flex items-center justify-between text-xs font-mono">
-                      <span className="text-casino-border">当選時 受取</span>
-                      <span className="text-casino-lime font-bold">{formatYen(winReturn)}</span>
+                      <span className="text-casino-border">勝利時 純利益</span>
+                      <span className="text-casino-lime font-bold">+{formatYen(winProfit)}</span>
                     </div>
                   </div>
 
