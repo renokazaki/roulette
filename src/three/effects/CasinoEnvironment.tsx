@@ -24,34 +24,34 @@ export function CasinoEnvironment() {
 
   return (
     <>
-      {/* Soft blue-tinted ambient */}
-      <ambientLight intensity={0.3} color="#0d0d22" />
+      {/* Brighter ambient so the wheel is always readable */}
+      <ambientLight intensity={1.2} color="#fffaf0" />
 
-      {/* Main overhead spotlight — warm casino light */}
+      {/* Main overhead spotlight — casino ceiling lamp */}
       <spotLight
-        position={[0, 14, 0]}
-        intensity={70}
-        angle={0.42}
-        penumbra={0.65}
-        color="#fff6e0"
+        position={[0, 12, 0]}
+        intensity={120}
+        angle={0.5}
+        penumbra={0.5}
+        color="#fff8e0"
         castShadow
         shadow-mapSize-width={2048}
         shadow-mapSize-height={2048}
       />
 
-      {/* Rim lights for gold gleam */}
-      <pointLight position={[  5, 4,  5 ]} intensity={5}   color="#e8b830" />
-      <pointLight position={[ -5, 4,  5 ]} intensity={5}   color="#e8b830" />
-      <pointLight position={[  5, 4, -5 ]} intensity={4}   color="#c07820" />
-      <pointLight position={[ -5, 4, -5 ]} intensity={4}   color="#c07820" />
+      {/* Front fill — viewer's side, strong so numbers are legible */}
+      <pointLight position={[0, 5, 9]}  intensity={30} color="#fffaf0" />
 
-      {/* Dramatic under-glow (red casino feel) */}
-      <pointLight position={[0, -1.5, 0]} intensity={2.5} color="#8a1520" />
+      {/* Side rim lights for gold gleam */}
+      <pointLight position={[  6, 4,  4 ]} intensity={18} color="#f0c040" />
+      <pointLight position={[ -6, 4,  4 ]} intensity={18} color="#f0c040" />
+      <pointLight position={[  4, 4, -6 ]} intensity={12} color="#d08020" />
+      <pointLight position={[ -4, 4, -6 ]} intensity={12} color="#d08020" />
 
-      {/* Cool fill light from front */}
-      <pointLight position={[0, 6, 8]} intensity={3} color="#3a4a8a" />
+      {/* Dramatic red under-glow */}
+      <pointLight position={[0, -1.2, 0]} intensity={8} color="#aa1828" />
 
-      <fog attach="fog" args={["#08080f", 20, 46]} />
+      <fog attach="fog" args={["#08080f", 24, 52]} />
 
       {/* Floating gold dust particles */}
       <points ref={particleRef}>

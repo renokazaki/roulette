@@ -44,26 +44,10 @@ export function RouletteWheel({ isSpinning, spinProgress = 0 }: RouletteWheelPro
   return (
     <group ref={wheelRef}>
 
-      {/* ── Ball track (outer concave ring) ── */}
-      <mesh position={[0, 0.06, 0]}>
-        <torusGeometry args={[3.75, 0.28, 12, 80]} />
+      {/* ── Single clean outer rim ── */}
+      <mesh position={[0, 0.09, 0]}>
+        <torusGeometry args={[3.72, 0.22, 14, 80]} />
         <meshStandardMaterial {...GOLD} />
-      </mesh>
-      {/* Track floor */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]}>
-        <ringGeometry args={[3.48, 3.75, 80]} />
-        <meshStandardMaterial color="#1a1209" metalness={0.3} roughness={0.9} />
-      </mesh>
-
-      {/* ── Outer decorative rim ── */}
-      <mesh position={[0, 0.08, 0]}>
-        <torusGeometry args={[4.0, 0.18, 12, 80]} />
-        <meshStandardMaterial {...GOLD} />
-      </mesh>
-      {/* Outer rim top face */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.17, 0]}>
-        <ringGeometry args={[3.82, 4.18, 80]} />
-        <meshStandardMaterial {...GOLD_DARK} />
       </mesh>
 
       {/* ── Wheel base disk ── */}

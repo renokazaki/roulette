@@ -615,7 +615,7 @@ export function LivePlay() {
       {/* 3D Canvas */}
       <div className="relative bg-casino-bg shrink-0" style={{ height: '42vh', minHeight: 240, maxHeight: 360 }}>
         <Canvas
-          camera={{ position: [0, 5, 10], fov: 58 }}
+          camera={{ position: [0, 4.5, 9], fov: 54 }}
           shadows
           gl={{ antialias: true }}
           dpr={[1, 1.5]}
@@ -726,6 +726,9 @@ export function LivePlay() {
                   {/* Spin + auto-spin */}
                   <AutoSpinBar onManualSpin={handleSpin} />
 
+                  {/* AI recommendation — above bet panel so visible during play */}
+                  <RecommendationBox recommendation={recommendation} />
+
                   {/* Bet type selector */}
                   <BetPanel
                     selectedBet={selectedBet}
@@ -733,7 +736,6 @@ export function LivePlay() {
                     disabled={phase !== 'waiting'}
                   />
 
-                  <RecommendationBox recommendation={recommendation} />
                   <StreakIndicator recentResults={recentResults} currentStreak={currentStreak} />
                 </>
               )}
