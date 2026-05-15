@@ -3,6 +3,12 @@ export type BetType =
   | 'odd' | 'even'
   | 'low' | 'high'
   | 'dozen1' | 'dozen2' | 'dozen3'
+  | 'col1' | 'col2' | 'col3'
+  | 'line'
+  | 'corner'
+  | 'street'
+  | 'split'
+  | 'straight'
 
 export type RouletteNumber = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
   | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19
