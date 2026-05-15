@@ -709,14 +709,11 @@ export function LivePlay() {
                       <span className="text-white font-bold">{formatYen(betAmount)}</span>
                     </div>
                     <div className="flex items-center justify-between text-xs font-mono">
-                      <span className="text-casino-border">オッズ</span>
-                      <span className="font-bold" style={{ color: '#e8c96b' }}>
-                        {betPayout}
+                      <span className="text-casino-border">勝利時 利益</span>
+                      <span className="text-casino-lime font-bold">
+                        +{formatYen(winProfit)}
+                        <span className="text-casino-border font-normal ml-1">({betPayout})</span>
                       </span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs font-mono">
-                      <span className="text-casino-border">勝利時 純利益</span>
-                      <span className="text-casino-lime font-bold">+{formatYen(winProfit)}</span>
                     </div>
                   </div>
 

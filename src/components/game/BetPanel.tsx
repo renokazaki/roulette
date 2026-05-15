@@ -6,30 +6,30 @@ const BET_GROUPS = [
   {
     label: '色',
     bets: [
-      { id: 'red' as BetType,   label: '赤',   emoji: '🔴', bg: 'bg-red-900/60',    border: 'border-red-700',    mult: 2 },
-      { id: 'black' as BetType, label: '黒',   emoji: '⚫', bg: 'bg-zinc-800/80',   border: 'border-zinc-600',   mult: 2 },
+      { id: 'red' as BetType,   label: '赤',   emoji: '🔴', bg: 'bg-red-900/60',    border: 'border-red-700' },
+      { id: 'black' as BetType, label: '黒',   emoji: '⚫', bg: 'bg-zinc-800/80',   border: 'border-zinc-600' },
     ],
   },
   {
     label: '奇偶',
     bets: [
-      { id: 'odd' as BetType,  label: '奇数', emoji: '🔢', bg: 'bg-casino-surface', border: 'border-casino-border', mult: 2 },
-      { id: 'even' as BetType, label: '偶数', emoji: '🔢', bg: 'bg-casino-surface', border: 'border-casino-border', mult: 2 },
+      { id: 'odd' as BetType,  label: '奇数', emoji: '🔢', bg: 'bg-casino-surface', border: 'border-casino-border' },
+      { id: 'even' as BetType, label: '偶数', emoji: '🔢', bg: 'bg-casino-surface', border: 'border-casino-border' },
     ],
   },
   {
     label: '大小',
     bets: [
-      { id: 'low' as BetType,  label: '1-18',  emoji: '⬇', bg: 'bg-casino-surface', border: 'border-casino-border', mult: 2 },
-      { id: 'high' as BetType, label: '19-36', emoji: '⬆', bg: 'bg-casino-surface', border: 'border-casino-border', mult: 2 },
+      { id: 'low' as BetType,  label: '1-18',  emoji: '⬇', bg: 'bg-casino-surface', border: 'border-casino-border' },
+      { id: 'high' as BetType, label: '19-36', emoji: '⬆', bg: 'bg-casino-surface', border: 'border-casino-border' },
     ],
   },
   {
     label: 'ダズン',
     bets: [
-      { id: 'dozen1' as BetType, label: '1-12',  emoji: '①', bg: 'bg-blue-900/40', border: 'border-blue-700', mult: 3 },
-      { id: 'dozen2' as BetType, label: '13-24', emoji: '②', bg: 'bg-blue-900/40', border: 'border-blue-700', mult: 3 },
-      { id: 'dozen3' as BetType, label: '25-36', emoji: '③', bg: 'bg-blue-900/40', border: 'border-blue-700', mult: 3 },
+      { id: 'dozen1' as BetType, label: '1-12',  emoji: '①', bg: 'bg-blue-900/40', border: 'border-blue-700' },
+      { id: 'dozen2' as BetType, label: '13-24', emoji: '②', bg: 'bg-blue-900/40', border: 'border-blue-700' },
+      { id: 'dozen3' as BetType, label: '25-36', emoji: '③', bg: 'bg-blue-900/40', border: 'border-blue-700' },
     ],
   },
 ]
@@ -49,7 +49,7 @@ export function BetPanel({ selectedBet, onBetSelect, disabled = false }: BetPane
             {group.label}
           </div>
           <div className={clsx('grid gap-1.5', group.bets.length === 3 ? 'grid-cols-3' : 'grid-cols-2')}>
-            {group.bets.map(({ id, label, bg, border, mult }) => {
+            {group.bets.map(({ id, label, bg, border }) => {
               const info = BET_INFO[id]
               const isSelected = selectedBet === id
               return (
@@ -66,7 +66,7 @@ export function BetPanel({ selectedBet, onBetSelect, disabled = false }: BetPane
                     disabled && 'opacity-40 cursor-not-allowed'
                   )}
                 >
-                  {/* Multiplier badge */}
+                  {/* Payout badge */}
                   <div
                     className="absolute top-1.5 right-1.5 px-1 py-0.5 rounded text-[9px] font-mono font-bold leading-none"
                     style={{
@@ -75,7 +75,7 @@ export function BetPanel({ selectedBet, onBetSelect, disabled = false }: BetPane
                       border: `1px solid ${isSelected ? 'rgba(212,170,58,0.5)' : 'rgba(42,42,50,0.8)'}`,
                     }}
                   >
-                    ×{mult}
+                    {info.payout}
                   </div>
 
                   <div className="text-white text-sm leading-none pr-5">{label}</div>
