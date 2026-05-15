@@ -14,6 +14,7 @@ import { useGameStore } from '@/stores/gameStore'
 import { calculateBet } from '@/lib/roulette/strategies'
 import { RED_NUMBERS, BET_INFO } from '@/lib/roulette/engine'
 import { formatYen } from '@/lib/utils/format'
+import { playSpin, playWin, playLose } from '@/lib/audio/sounds'
 
 type Tab = 'bet' | 'strategy' | 'chart' | 'numbers'
 
@@ -274,9 +275,9 @@ function GameSettings() {
               <div className="h-4" />
             </div>
 
-            {/* Footer — always visible at bottom */}
-            <div className="shrink-0 safe-bottom px-5 pt-3 pb-5 border-t border-casino-border/50"
-              style={{ background: '#131318' }}>
+            {/* Footer — padded above the fixed nav bar (~70px) + safe area */}
+            <div className="shrink-0 px-5 pt-3 border-t border-casino-border/50"
+              style={{ background: '#131318', paddingBottom: 'max(5.5rem, calc(env(safe-area-inset-bottom, 0px) + 5rem))' }}>
               {!canEdit && (
                 <p className="text-center text-xs text-red-400 mb-2 font-mono">ゲーム終了後に変更できます</p>
               )}
@@ -575,6 +576,7 @@ export function LivePlay() {
   const targetAmount    = useGameStore(s => s.targetAmount)
   const bankroll        = useGameStore(s => s.bankroll)
   const strategyState   = useGameStore(s => s.strategyState)
+  const lastResult      = useGameStore(s => s.lastResult)
   const actions         = useGameStore(s => s.actions)
 
   const [tab, setTab] = useState<Tab>('bet')
@@ -588,9 +590,19 @@ export function LivePlay() {
 
   function handleSpin() {
     if (phase !== 'waiting' || bankroll < 100) return
+    playSpin()
     actions.spin()
     actions.setPhase('spinning')
   }
+
+  // Sound on result
+  useEffect(() => {
+    if (phase === 'result' || phase === 'gameOver' || phase === 'goalReached') {
+      if (lastResult?.won) playWin()
+      else playLose()
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase])
 
   const isGameOver = phase === 'gameOver' || phase === 'goalReached'
 
